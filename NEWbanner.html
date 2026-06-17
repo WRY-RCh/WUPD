@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="https://code.jquery.com/jquery.min.js"></script>
+        <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+        <link href="https://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.min.css" rel="stylesheet" type="text/css" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"> 
+    
+        <style>
+            body { 
+                background-color: rgba(0, 0, 0, 0); 
+                margin: 0px auto; 
+                overflow: hidden; 
+                font-family: 'Inter', sans-serif;
+                font-size: 11px;
+                color: #ffffff;
+                letter-spacing: 1px;
+                -webkit-user-select: none;
+                user-select: none;
+            }
+
+            /* จุดกะพริบเรนเดอร์แบบสมูท */
+            .Blink {
+                animation: blinker 1.5s cubic-bezier(0.25, 1, 0.5, 1) infinite alternate;  
+            }
+
+            @keyframes blinker {  
+                from { opacity: 1; filter: drop-shadow(0 0 4px #ff3b30); }
+                to { opacity: 0.15; }
+            }
+
+            .top-right{
+                float: right;
+                width: auto;
+                text-align: right;
+            }
+            
+            /* อัปเกรดร่างสุดยอด: ดีไซน์ทรงเฉียงสไตล์ไซไฟ พร้อมเอฟเฟกต์กระจกบางเบา */
+            .top-right-container{
+                float: right;
+                width: auto;
+                text-align: right;
+                background: linear-gradient(135deg, rgba(12, 19, 30, 0.4) 0%, rgba(6, 10, 18, 0.6) 100%);
+                -webkit-backdrop-filter: blur(5px);
+                backdrop-filter: blur(5px); 
+                padding: 12px 22px;
+                margin: 25px;
+                position: relative;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+                
+                /* ใช้ clip-path ตัดมุมกล่องให้เป็นทรงเฉียงล้ำๆ แบบมินิมอล */
+                clip-path: polygon(0 0, 100% 0, 100% 100%, 15px 100%, 0 calc(100% - 15px));
+                
+                /* เส้นกรอบ HUD บางเฉียบ */
+                border-right: 1px solid rgba(255, 255, 255, 0.6);
+                border-bottom: 1px solid rgba(255, 255, 255, 0.6);
+            }
+
+            .container{
+                width: 100vw;
+                height: 100vh;
+            }
+
+            /* ชิ้นส่วนตกแต่ง UI */
+            .mono-text { font-family: 'Space Mono', monospace; }
+            .agency-title { font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 2px; color: #ffffff; }
+            .player-info { color: rgba(255, 255, 255, 0.85); margin-top: 1px; font-size: 11px; }
+            .time-display { font-weight: 700; color: #ffffff; }
+            .date-display { color: rgba(255, 255, 255, 0.733); font-size: 10.5px; }
+            .rec-dot { color: #ff3b30; font-size: 8px; vertical-align: middle; margin-right: 4px; }
+            .divider { color: rgba(255, 255, 255, 0.2); margin: 0 7px; }
+            
+            /* จุดไข่ปลาเล็กๆ สไตล์หน้าจอประมวลผลระดับสูง */
+            .hud-dots {
+                letter-spacing: 2px;
+                font-size: 8px;
+                color: rgba(255, 255, 255, 0.25);
+                margin-top: -2px;
+                margin-bottom: 2px;
+            }
+        </style>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width">
+        <title>WUPD Bodycam Overlay</title>
+    </head>
+
+    <body>
+        <div class="top-right-container">
+            <div class="top-right" style="margin-left: 20px; opacity: 0.9; padding-top: 4px;">
+                <img src="./Artboard_1_1_1.png" width="50" height="50" border="0" style="filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));">
+            </div>
+            <div class="top-right">
+                <div>
+                    <span class="rec-dot"><i class="fa fa-circle Blink"></i></span>
+                    <span id="agency" class="agency-title">XXX</span>
+                </div>
+                <div class="hud-dots">•••••••••••••</div>
+                <div class="player-info mono-text">
+                    <span id="player">XXX</span><span id="callsign"></span>
+                </div>                
+                <div class="date-display mono-text">
+                    <span id="month">XXX</span> <span id="day">00</span> <span id="year">0000</span>
+                    <span class="divider">|</span>
+                    <span id="hr" class="time-display">00</span>:<span id="min" class="time-display">00</span>:<span id="sec" class="time-display">00</span>
+                    <span id="tz" style="font-size: 9px; opacity: 0.6; display: none;"></span>
+                </div>
+            </div>
+        </div>
+    </body>
+    
+    <script>
+        //***edit this only for your information***
+        const player = "16439 | Chucky Ratchada";
+        const agency = "REC WUPD Body Cam";
+        const callsign = " [911]";
+        //*** end edit this only         ***
+    
+        var d, h, m, s, animate, month, day, year, t;
+        const monthNames = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEPT","OCT","NOV","DEC"];
+
+        function init(){
+            d=new Date();
+            h=d.getHours();
+            m=d.getMinutes();
+            s=d.getSeconds();
+            t=d.toLocaleString('en', {timeZoneName:'short'}).split(' ').pop();
+            
+            month=d.getMonth();
+            day=d.getDate();
+            year=d.getFullYear();
+            
+            clock();
+        };
+
+        function clock(){
+            s++;
+            if(s==60){
+                s=0;
+                m++;
+                if(m==60){
+                    m=0;
+                    h++;
+                    if(h==24){
+                        h=0;
+                        d=new Date();
+                        day=d.getDate();
+                        month=d.getMonth();
+                        year=d.getFullYear();
+                    }
+                }
+            }
+            $('sec', s);
+            $('min', m);
+            $('hr', h);
+            $('tz', t);
+            $('month', monthNames[month]);
+            $('day', day);
+            $('year', year);
+            $('player', player);
+            $('agency', agency);
+            // $('callsign', callsign);
+            animate=setTimeout(clock,1000);
+        };
+
+        function $(id,val){
+            if(typeof val === 'number' && val<10){
+                val='0'+val;
+            }
+            if(document.getElementById(id)){
+                document.getElementById(id).innerHTML=val;
+            }
+        };
+
+        window.onload=init;
+    </script>
+
+</html>
